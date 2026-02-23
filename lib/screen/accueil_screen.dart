@@ -23,10 +23,18 @@ class AccueilScreen extends StatelessWidget {
           )
         ],
       ),
-      body: Center(
-        child: Text(
-          "22°C",
-          style: Theme.of(context).textTheme.displayLarge,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background_light.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            "22°C",
+            style: Theme.of(context).textTheme.displayLarge,
+          ),
         ),
       ),
     );
