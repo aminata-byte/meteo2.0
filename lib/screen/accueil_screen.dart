@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:meteo/screen/page_chargement_screen.dart';
+import 'page_principale_screen.dart'; // ✅ Import de la page principale
 
 class AccueilScreen extends StatelessWidget {
   final VoidCallback toggleTheme;
@@ -121,7 +123,6 @@ class AccueilScreen extends StatelessWidget {
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black,
-
                               ),
                             ),
                           ],
@@ -165,7 +166,6 @@ class AccueilScreen extends StatelessWidget {
                           width: 1,
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           color: Colors.black26,
-
                         ),
 
                         // Temp
@@ -219,20 +219,20 @@ class AccueilScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(30),
                         onTap: () {
-                          // action bouton ici
+                          //  Navigation vers la page principale
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PageChargementScreen(),
+                            ),
+                          );
                         },
-
-
-
-                        child:
-
-                        const Padding(
+                        child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 25),
                           child: Center(
                             child: Text(
