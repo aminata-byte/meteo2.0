@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meteo/screen/page_chargement_screen.dart';
 
 class AccueilScreen extends StatelessWidget {
   final VoidCallback toggleTheme;
@@ -60,15 +61,7 @@ class AccueilScreen extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // Sous-titre
-                  const Text(
-                    "Bonjour ! Découvrez la météo en \n temps réel  ",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black54,
-                    ),
-                  ),
+
                   const SizedBox(height: 24),
 
                   // Température
@@ -225,14 +218,14 @@ class AccueilScreen extends StatelessWidget {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(30),
                         onTap: () {
-                          // action bouton ici
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PageChargementScreen(),
+                            ),
+                          );
                         },
-
-
-
-                        child:
-
-                        const Padding(
+                        child: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 25),
                           child: Center(
                             child: Text(

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class PagePrincipaleScreen extends StatefulWidget {
   const PagePrincipaleScreen({super.key});
@@ -10,11 +10,6 @@ class PagePrincipaleScreen extends StatefulWidget {
 class _PagePrincipaleScreenState extends State<PagePrincipaleScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Page Principale')),
-      body: const Center(
-        child: Text('Bienvenue sur la page principale !'),
-      ),
-    );
+    return const Placeholder();
   }
 }
