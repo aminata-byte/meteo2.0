@@ -1,25 +1,26 @@
 // ═══════════════════════════════════════════════════════════════
 // 📄 page_chargement_screen.dart
-// Page de chargement : affiche la jauge animée, les messages
-// d'attente, et lance les appels API pour les 5 villes.
-// Une fois les données récupérées → navigue vers PagePrincipaleScreen
+// Page de chargement : jauge animée + appels API pour 5 villes
+// Villes : Dakar, Kaolack, Diourbel, Paris, New York
 // ═══════════════════════════════════════════════════════════════
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'page_principale_screen.dart'; // Page suivante après le chargement
+import 'package:meteo/screen/page_principale_screen.dart';
 
 // ───────────────────────────────────────────────────────────────
 // 📦 MODÈLE : WeatherData
-// Représente les données météo d'une ville retournées par l'API
+// Représente les données météo d'une ville
+// Utilisé par PagePrincipaleScreen et PageDetailsScreen
 // ───────────────────────────────────────────────────────────────
 class WeatherData {
-  final String city;        // Nom affiché (ex: "Dakar")
+  final String city;        // Nom de la ville (ex: "Dakar")
   final String country;     // Code pays (ex: "SN")
   final double temp;        // Température en °C
-  final String description; // Description météo en majuscules
+  final String description; // Description en majuscules (ex: "ENSOLEILLÉ")
   final String icon;        // Code icône OpenWeather (ex: "01d")
   final double windSpeed;   // Vitesse du vent en m/s
 
@@ -32,10 +33,10 @@ class WeatherData {
     required this.windSpeed,
   });
 
-  /// Construit un WeatherData depuis la réponse JSON de l'API
-  factory WeatherData.fromJson(Map<String, dynamic> json, String displayCity) {
+  /// Convertit un Map JSON brut (donneesMeteo) en WeatherData
+  factory WeatherData.fromMap(Map<String, dynamic> json) {
     return WeatherData(
-      city:        displayCity,
+      city:        json['name'],
       country:     json['sys']['country'],
       temp:        (json['main']['temp'] as num).toDouble(),
       description: json['weather'][0]['description'].toString().toUpperCase(),
@@ -45,55 +46,8 @@ class WeatherData {
   }
 }
 
-// ───────────────────────────────────────────────────────────────
-// 🌐 SERVICE : WeatherService
-// Gère tous les appels HTTP vers l'API OpenWeatherMap
-// ───────────────────────────────────────────────────────────────
-class WeatherService {
-  //   clé API : https://openweathermap.org/api je cree un cre sur ce site
-  static const String _apiKey = 'bede8a146a0a4ea689a842150385ab6f';
-  static const String _baseUrl =
-      'https://api.openweathermap.org/data/2.5/weather';
-
-  // Nom affiché → nom envoyé à l'API (avec code pays pour éviter les doublons)
-  static const Map<String, String> cities = {
-    'Kaolack': 'Kaolack,SN',  // Kaolack, Sénégal
-    'Dakar':   'Dakar,SN',    // Dakar, Sénégal
-    'Paris':   'Paris,FR',    // Paris, France
-    'Canada':  'Toronto,CA',  // Toronto représente le Canada
-    'USA':     'New York,US', // New York représente les USA
-  };
-
-  /// Récupère la météo d'une seule ville
-  static Future<WeatherData> fetchWeather(
-      String displayName, String queryName) async {
-    final url = Uri.parse(
-      '$_baseUrl?q=$queryName&appid=$_apiKey&units=metric&lang=fr',
-    );
-
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      // Succès → on parse et retourne le modèle
-      return WeatherData.fromJson(jsonDecode(response.body), displayName);
-    } else {
-      // Erreur HTTP (401 clé invalide, 404 ville introuvable...)
-      throw Exception(
-          'Erreur API pour "$displayName" — Code ${response.statusCode}');
-    }
-  }
-
-  /// Lance les 5 appels EN PARALLÈLE → bien plus rapide que séquentiel
-  static Future<List<WeatherData>> fetchAllCities() async {
-    return Future.wait(
-      cities.entries.map((e) => fetchWeather(e.key, e.value)),
-    );
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════
-// PAGE DE CHARGEMENT — StatefulWidget
-// Rôle : animer la jauge + appeler l'API + passer à la suite
+// ⏳ PAGE DE CHARGEMENT — StatefulWidget
 // ═══════════════════════════════════════════════════════════════
 class PageChargementScreen extends StatefulWidget {
   const PageChargementScreen({super.key});
@@ -102,123 +56,171 @@ class PageChargementScreen extends StatefulWidget {
   State<PageChargementScreen> createState() => _PageChargementScreenState();
 }
 
-class _PageChargementScreenState extends State<PageChargementScreen> {
+class _PageChargementScreenState extends State<PageChargementScreen>
+    with SingleTickerProviderStateMixin {
 
-  // ── Jauge ──────────────────────────────
-  double _progress = 0.0; // Valeur entre 0.0 (0%) et 1.0 (100%)
-  int _msgIndex    = 0;   // Index du message d'attente actuel
+  // 🔑 Clé API OpenWeatherMap
+  final String apiKey = 'bede8a146a0a4ea689a842150385ab6f';
 
-  // ──  Gestion erreur ─────────────────────
-  bool _hasError   = false;
-  String _errorMsg = '';
-
-  // ── ⏱ Timers ─────────────────────────────
-  Timer? _progressTimer; // Avance la jauge visuellement
-  Timer? _messageTimer;  // Change le message toutes les 2.5s
-
-  // ──  Messages d'attente en boucle ──────
-  final List<String> _messages = [
-    'Nous téléchargeons les données…',
-    'C\'est presque fini…',
-    'Plus que quelques secondes avant d\'avoir le résultat…',
+  // 📍 Les 5 villes à charger
+  // ✅ Dakar, Kaolack, Diourbel (Sénégal) + Paris + New York
+  final List<String> villes = [
+    'Dakar',
+    'Kaolack',
+    'Diourbel',
+    'Paris',
+    'New York',
   ];
+
+  // ── État de la jauge ──────────────────────
+  double progression = 0.0;
+
+  // ── Données brutes récupérées depuis l'API ─
+  List<Map<String, dynamic>> donneesMeteo = [];
+
+  // ── Flags d'état ──────────────────────────
+  bool chargementTermine = false;
+  bool erreur = false;
+
+  // ── Animation de la jauge ─────────────────
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  // ─────────────────────────────────────────
+  // 💬 Message dynamique basé sur la progression
+  // Disparaît quand la jauge est à 100%
+  // ─────────────────────────────────────────
+  String get messageActuel {
+    if (progression >= 1.0) return '';
+    if (progression < 0.4)  return 'Nous téléchargeons les données... 📡';
+    if (progression < 0.8)  return 'C\'est presque fini... ⏳';
+    return 'Plus que quelques secondes avant d\'avoir le résultat... 🌤️';
+  }
+
+  // ─────────────────────────────────────────
+  // 🏙 Ville en cours de chargement
+  // ─────────────────────────────────────────
+  String get villeActuelle {
+    if (chargementTermine) return 'Terminé';
+    int index = (progression * villes.length).toInt().clamp(0, villes.length - 1);
+    return villes[index];
+  }
 
   // ─────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    _startLoading(); // Démarre immédiatement au lancement de la page
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _animation = Tween<double>(begin: 0, end: 0).animate(_animationController);
+    _demarrerChargement();
   }
 
   @override
   void dispose() {
-    //  Toujours annuler les timers pour éviter les memory leaks
-    _progressTimer?.cancel();
-    _messageTimer?.cancel();
+    // 🧹 Libère le contrôleur pour éviter les memory leaks
+    _animationController.dispose();
     super.dispose();
   }
 
   // ═══════════════════════════════════════════
-  // _startLoading()
-  // Remet à zéro et relance jauge + appels API
+  // 🚀 _demarrerChargement()
+  // Charge les 5 villes une par une → +20% par ville
   // Appelé au démarrage ET au clic "Réessayer"
   // ═══════════════════════════════════════════
-  void _startLoading() {
+  Future<void> _demarrerChargement() async {
+    donneesMeteo = [];
     setState(() {
-      _progress = 0.0;
-      _msgIndex = 0;
-      _hasError = false;
+      progression       = 0.0;
+      chargementTermine = false;
+      erreur            = false;
     });
 
-    // ⏱ Avance la jauge de 1.5% toutes les 200ms
-    // → bloquée à 92% jusqu'à réception des données
-    _progressTimer = Timer.periodic(
-      const Duration(milliseconds: 200),
-          (_) {
-        if (!mounted) return;
-        setState(() {
-          _progress = (_progress + 0.015).clamp(0.0, 0.92);
-        });
-      },
-    );
+    // Charge chaque ville séquentiellement
+    for (int i = 0; i < villes.length; i++) {
+      try {
+        final data = await _fetchMeteo(villes[i]);
+        donneesMeteo.add(data);
+      } catch (e) {
+        // ❌ Erreur → arrête tout et affiche la vue erreur
+        if (mounted) setState(() => erreur = true);
+        return;
+      }
+      // Anime la jauge jusqu'au prochain palier (20%, 40%...)
+      await _animerProgression((i + 1) / villes.length);
+    }
 
-    // ⏱ Fait tourner les messages toutes les 2.5 secondes
-    _messageTimer = Timer.periodic(
-      const Duration(milliseconds: 2500),
-          (_) {
-        if (!mounted) return;
-        setState(() {
-          _msgIndex = (_msgIndex + 1) % _messages.length;
-        });
-      },
-    );
+    await Future.delayed(const Duration(milliseconds: 400));
 
-    // Lance les appels API
-    _fetchData();
-  }
+    if (mounted) {
+      setState(() => chargementTermine = true);
+      await Future.delayed(const Duration(milliseconds: 800));
 
-  // ═══════════════════════════════════════════
-  // _fetchData()
-  // Récupère la météo des 5 villes en parallèle
-  // Puis navigue vers PagePrincipaleScreen
-  // ═══════════════════════════════════════════
-  Future<void> _fetchData() async {
-    try {
-      final results = await WeatherService.fetchAllCities();
-      if (!mounted) return;
-
-      //  Données reçues → stoppe les timers, jauge à 100%
-      _progressTimer?.cancel();
-      _messageTimer?.cancel();
-
-      setState(() => _progress = 1.0);
-
-      // Petit délai pour que l'utilisateur voie la jauge complète
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-
-      //  Navigation vers la page principale en passant les données
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PagePrincipaleScreen(weatherList: results),
-        ),
-      );
-
-    } catch (e) {
-      //  Erreur réseau ou API → affiche le message d'erreur
-      if (!mounted) return;
-      _progressTimer?.cancel();
-      _messageTimer?.cancel();
-      setState(() {
-        _hasError = true;
-        _errorMsg = e.toString();
-      });
+      if (mounted) {
+        // ✅ Convertit les Maps JSON → WeatherData
+        // puis navigue vers PagePrincipaleScreen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PagePrincipaleScreen(
+              weatherList: donneesMeteo
+                  .map((json) => WeatherData.fromMap(json))
+                  .toList(),
+            ),
+          ),
+        );
+      }
     }
   }
 
   // ═══════════════════════════════════════════
-  //  BUILD
+  // 🎞 _animerProgression(cible)
+  // Anime la jauge de sa valeur actuelle → cible
+  // ═══════════════════════════════════════════
+  Future<void> _animerProgression(double cible) async {
+    final completer = Completer<void>();
+    _animation = Tween<double>(
+      begin: progression,
+      end: cible,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+    _animationController.forward(from: 0).then((_) => completer.complete());
+    _animation.addListener(() {
+      if (mounted) setState(() => progression = _animation.value);
+    });
+    return completer.future;
+  }
+
+  // ═══════════════════════════════════════════
+  // 🌐 _fetchMeteo(ville)
+  // Appel HTTP vers OpenWeatherMap
+  // Timeout 5 secondes pour éviter les blocages
+  // ═══════════════════════════════════════════
+  Future<Map<String, dynamic>> _fetchMeteo(String ville) async {
+    final url = Uri.parse(
+      'https://api.openweathermap.org/data/2.5/weather'
+          '?q=$ville&appid=$apiKey&units=metric&lang=fr',
+    );
+
+    final response = await http.get(url).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw TimeoutException('Timeout pour $ville'),
+    );
+
+    if (response.statusCode == 200) {
+      // ✅ Retourne le JSON brut
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erreur API pour $ville — Code ${response.statusCode}');
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // 🎨 BUILD
   // ═══════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
@@ -226,133 +228,186 @@ class _PageChargementScreenState extends State<PageChargementScreen> {
 
     return Scaffold(
       backgroundColor:
-      isDark ? const Color(0xFF1C1C2E) : const Color(0xFFF2F5FF),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new,
-              color: isDark ? Colors.white : Colors.black87),
-          onPressed: () => Navigator.pop(context),
+      isDark ? const Color(0xFF0F1926) : const Color(0xFFEAF4FB),
+      body: SafeArea(
+        child: Center(
+          child: erreur
+              ? _buildErreur(isDark)
+              : _buildChargement(isDark),
         ),
-        title: Text('Météo Live',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            )),
-        centerTitle: true,
       ),
-
-      // Affiche soit la jauge, soit le message d'erreur
-      body: _hasError
-          ? _buildErrorView(isDark)
-          : _buildLoadingView(isDark),
     );
   }
 
   // ═══════════════════════════════════════════
-  // VUE : JAUGE DE CHARGEMENT
+  // 📊 VUE : JAUGE CIRCULAIRE ANIMÉE
   // ═══════════════════════════════════════════
-  Widget _buildLoadingView(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+  Widget _buildChargement(bool isDark) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
 
-            // Icône nuage
-            Icon(Icons.cloud_download_outlined,
-                size: 80,
-                color: isDark ? Colors.white54 : const Color(0xFF4A90E2)),
-            const SizedBox(height: 28),
-
-            //  Message animé avec transition douce
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 500),
-              child: Text(
-                _messages[_msgIndex],
-                key: ValueKey(_msgIndex), // Déclenche l'animation à chaque changement
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white60 : Colors.black54,
+        // Jauge circulaire dégradée
+        SizedBox(
+          width: 220,
+          height: 220,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: const Size(220, 220),
+                painter: JaugeDegradeePainter(
+                  progression: progression,
+                  isDark: isDark,
                 ),
               ),
-            ),
-            const SizedBox(height: 28),
-
-            // Barre de progression
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: _progress,
-                minHeight: 12,
-                backgroundColor:
-                isDark ? Colors.white12 : const Color(0xFFD0E4FF),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF4A90E2)),
+              // Pourcentage + ville actuelle au centre
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${(progression * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    villeActuelle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 10),
-
-            // Pourcentage sous la barre
-            Text(
-              '${(_progress * 100).toInt()}%',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4A90E2),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+
+        const SizedBox(height: 60),
+
+        // 💬 Message d'attente animé (disparaît à 100%)
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: messageActuel.isEmpty
+              ? const SizedBox(key: ValueKey('vide'), height: 20)
+              : Text(
+            messageActuel,
+            key: ValueKey<String>(messageActuel),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.white70 : Colors.black54,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   // ═══════════════════════════════════════════
-  //  VUE : ERREUR + BOUTON RÉESSAYER
+  // ❌ VUE : ERREUR + BOUTON RÉESSAYER
   // ═══════════════════════════════════════════
-  Widget _buildErrorView(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.wifi_off_rounded,
-                size: 72, color: Colors.redAccent),
-            const SizedBox(height: 20),
-            const Text('Oups ! Une erreur est survenue',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(_errorMsg,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white38 : Colors.black38)),
-            const SizedBox(height: 28),
-            // 🔄 Réessayer → relance _startLoading()
-            ElevatedButton.icon(
-              onPressed: _startLoading,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Réessayer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
-              ),
-            ),
-          ],
+  Widget _buildErreur(bool isDark) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.error_outline, color: Colors.red, size: 80),
+        const SizedBox(height: 20),
+        Text(
+          'Erreur de chargement ❌',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
         ),
-      ),
+        const SizedBox(height: 10),
+        Text(
+          'Vérifiez votre connexion internet',
+          style: TextStyle(
+              color: isDark ? Colors.white60 : Colors.black54),
+        ),
+        const SizedBox(height: 40),
+        ElevatedButton.icon(
+          onPressed: _demarrerChargement,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Réessayer 🔄'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            padding:
+            const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30)),
+          ),
+        ),
+      ],
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🎨 CustomPainter : Jauge circulaire dégradée bleu → orange
+// ═══════════════════════════════════════════════════════════════
+class JaugeDegradeePainter extends CustomPainter {
+  final double progression;
+  final bool isDark;
+
+  JaugeDegradeePainter({required this.progression, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center      = Offset(size.width / 2, size.height / 2);
+    final radius      = size.width / 2 - 10;
+    const strokeWidth = 10.0;
+
+    // Cercle de fond gris (piste)
+    final paintFond = Paint()
+      ..color       = isDark ? Colors.white12 : Colors.grey.shade200
+      ..style       = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap   = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, paintFond);
+
+    if (progression <= 0) return;
+
+    // Arc avec dégradé bleu → orange → bleu
+    final rect     = Rect.fromCircle(center: center, radius: radius);
+    final gradient = SweepGradient(
+      startAngle: -pi / 2,
+      endAngle:   -pi / 2 + 2 * pi,
+      colors: const [
+        Color(0xFF4A90E2),
+        Color(0xFFF2913D),
+        Color(0xFF4A90E2),
+      ],
+      stops: const [0.0, 0.6, 1.0],
+    );
+
+    final paintArc = Paint()
+      ..shader      = gradient.createShader(rect)
+      ..style       = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap   = StrokeCap.round;
+
+    canvas.drawArc(
+      rect,
+      -pi / 2,
+      2 * pi * progression,
+      false,
+      paintArc,
+    );
+  }
+
+  @override
+  bool shouldRepaint(JaugeDegradeePainter oldDelegate) =>
+      oldDelegate.progression != progression ||
+          oldDelegate.isDark != isDark;
 }
