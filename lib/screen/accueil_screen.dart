@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meteo/screen/page_chargement_screen.dart';
 
-import 'page_principale_screen.dart'; // ✅ Import de la page principale
+// ✅ Import de la page principale
 
 
 class AccueilScreen extends StatelessWidget {

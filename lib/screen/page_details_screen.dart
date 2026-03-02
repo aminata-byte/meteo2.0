@@ -1,229 +1,348 @@
-// ═══════════════════════════════════════════════════════════════
-//  page_details_screen.dart
-// Page détail d'une ville : affiche toutes les infos météo
-// + localisation sur Google Maps
-// ═══════════════════════════════════════════════════════════════
-
 import 'package:flutter/material.dart';
-import 'page_chargement_screen.dart'; // Pour le type WeatherData
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'page_chargement_screen.dart';
 
-class PageDetailsScreen extends StatelessWidget {
-
-  // 📦 Données météo de la ville reçues depuis PagePrincipaleScreen
+class PageDetailsScreen extends StatefulWidget {
   final WeatherData data;
-
   const PageDetailsScreen({super.key, required this.data});
 
-  // ─────────────────────────────────────────
-  // 🔗 URL icône météo grande taille (4x = haute résolution)
-  // ─────────────────────────────────────────
-  String get _iconUrl =>
-      'https://openweathermap.org/img/wn/${data.icon}@4x.png';
+  @override
+  State<PageDetailsScreen> createState() => _PageDetailsScreenState();
+}
 
-  // ═══════════════════════════════════════════
-  // 🎨 BUILD
-  // ═══════════════════════════════════════════
+class _PageDetailsScreenState extends State<PageDetailsScreen> {
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor:
-      isDark ? const Color(0xFF1C1C2E) : const Color(0xFFF2F5FF),
+    initializeDateFormatting('fr_FR');
+    String _weatherEmoji(String iconCode) {
+      final code    = iconCode.substring(0, 2);
+      final isNight = iconCode.endsWith('n');
 
-      // ── AppBar ──────────────────────────────
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          // 🔙 Retour vers la liste des villes
-          icon: Icon(Icons.arrow_back_ios_new,
-              color: isDark ? Colors.white : Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          data.city,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: isDark ? Colors.white : Colors.black87,
+      switch (code) {
+        case '01': return isNight ? '🌕'  : '☀️';   // Ciel dégagé
+        case '02': return isNight ? '🌤'  : '🌤️';  // Peu nuageux
+        case '03': return '🌥️';                     // Nuages épars
+        case '04': return '☁️';                     // Très nuageux
+        case '09': return '🌧️';                    // Averses
+        case '10': return isNight ? '🌧️' : '⛈️';  // Pluie
+        case '11': return '⛈️';                    // Orage
+        case '13': return '❄️';                    // Neige
+        case '50': return '🌫️';                   // Brume
+        default:   return '🌡️';
+      }
+    }
+
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF0F1926), const Color(0xFF2B45D9)]
+                  : [const Color(0xFF0597F2), const Color(0xFF05AFF2)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        centerTitle: true,
-      ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+          child: SafeArea(
+            child: Column(
           children: [
-
-            // ── 🌤 Carte principale : icône + température ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(30),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF2BB3E6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4A90E2).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
+          // ── AppBar custom ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // Icône météo haute résolution
-                  Image.network(
-                    _iconUrl,
-                    width: 100,
-                    height: 100,
-                    // Fallback si l'image ne charge pas
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.wb_sunny,
-                      color: Colors.white,
-                      size: 80,
-                    ),
+                  // Partie gauche : bouton + région + date
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.20),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            color: isDark ? Colors.white : Colors.black87,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 50),
+
+                      Text(
+                        widget.data.city,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 50,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 2),
+
+                      Text(
+                        DateFormat('EEEE, d MMMM', 'fr_FR').format(DateTime.now()),
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ],
                   ),
 
-                  // Température principale
-                  Text(
-                    '${data.temp.round()}°C',
-                    style: const TextStyle(
-                      fontSize: 64,
-                      fontWeight: FontWeight.w200,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const Spacer(),
 
-                  // Description météo (ex: CIEL DÉGAGÉ)
+                  // Ville à droite
                   Text(
-                    data.description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Ville + pays (ex: Dakar, SN)
-                  Text(
-                    '${data.city}, ${data.country}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.white54,
+                    widget.data.country,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
 
-            // ── 📋 Infos complémentaires : vent ──
-            _buildInfoCard(
-              isDark,
-              icon: Icons.air_rounded,
-              label: 'VENT',
-              value: '${data.windSpeed} m/s',
+        // reste du contenu après
+            SizedBox(height: 70,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+
+                child: Stack(
+                  clipBehavior: Clip.none, // permet au nuage de sortir de la card
+                  children: [
+
+                    // ☁️ Nuage qui déborde
+                    Positioned(
+                      top: -85,
+                      right: 250,
+                      child: Text(
+                        _weatherEmoji(widget.data.icon),
+                        style: const TextStyle(
+                          fontSize: 120,
+                        ),
+                      ),
+                    ),
+
+                    // 🌡 température
+                    Positioned(
+                      right: 20,
+                      top: 20,
+                      child: Text(
+                        '${widget.data.temp.round()}°',
+                        style: const TextStyle(
+                          fontSize: 65,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+
+                    // description météo
+                    Positioned(
+                      left: 25,
+                      bottom: 25,
+                      child: Text(
+                        widget.data.description,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),//la carte il reste a changer l'icone par limage correspondante
+            SizedBox(height: 20,),
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("rapidite vent"),
+                        SizedBox(height: 8),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.home, color: Colors.white),
+                        ),
+                        SizedBox(height: 8),
+                        Text("${widget.data.windSpeed.toStringAsFixed(1)} m/s",style: TextStyle(fontWeight: FontWeight.w600,),),
+                      ],
+                    ),
+
+                    // Colonne 2
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Humidite"),
+                        SizedBox(height: 8),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.favorite, color: Colors.white),
+                        ),
+                        SizedBox(height: 8),
+                        Text("${widget.data.humidity}%",style: TextStyle(fontWeight: FontWeight.w600,),),
+
+                      ],
+                    ),
+
+                    // Colonne 3
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Temp Max"),
+                        SizedBox(height: 8),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.star, color: Colors.white),
+                        ),
+                        SizedBox(height: 8),
+                        Text("${widget.data.temp.toStringAsFixed(1)}°C",style: TextStyle(fontWeight:FontWeight.w600,),),
+                      ],
+                    ),
+                  ],
+
+                ),
+            ),// la row apres le card
+            SizedBox(height: 20,),
+            // ────────── Ligne Aujourd'hui / Prochains jours ──────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                children: [
+                  Text(
+                    "Aujourd'hui",
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      // Action pour scroller / ouvrir la liste des prochains jours
+                      // Ici on peut afficher la Row horizontale des prochains jours
+                    },
+                    child: Text(
+                      "Prochains jours",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
 
-            // ── 🗺 Bouton Google Maps ──────────────
+// ────────── Liste horizontale scrollable des prochains jours ──────────
             SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // 🗺 Pour ouvrir Google Maps :
-                  // Ajoute url_launcher dans pubspec.yaml
-                  // puis : launchUrl(Uri.parse(
-                  //   'https://www.google.com/maps?q=${data.city}'
-                  // ));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Ouvrir Google Maps pour ${data.city}'),
-                      backgroundColor: const Color(0xFF34A853),
+              height: 150,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                itemCount: 7, // par exemple 7 prochains jours
+                itemBuilder: (context, index) {
+                  // Ici tu peux remplacer par tes données réelles
+                  return Container(
+                    width: 110,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(isDark ? 0.1 : 0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Mar", // Nom du jour
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "☀️", // Icône météo
+                          style: const TextStyle(fontSize: 30),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "27°", // Température
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },
-                icon: const Icon(Icons.map_outlined, color: Colors.white),
-                label: const Text(
-                  'Voir sur Google Maps',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  // Vert Google Maps
-                  backgroundColor: const Color(0xFF34A853),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // ═══════════════════════════════════════════
-  // 📋 CARTE D'INFORMATION
-  // Affiche une info avec icône + label + valeur
-  // ═══════════════════════════════════════════
-  Widget _buildInfoCard(
-      bool isDark, {
-        required IconData icon,
-        required String label,
-        required String value,
-      }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF252540) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
         ],
       ),
-      child: Row(
-        children: [
-          // Icône
-          Icon(icon, color: const Color(0xFF4A90E2), size: 26),
-          const SizedBox(width: 16),
-          // Label
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              letterSpacing: 1,
-              color: isDark ? Colors.white38 : Colors.black38,
-            ),
           ),
-          const Spacer(),
-          // Valeur
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    }
   }
-}

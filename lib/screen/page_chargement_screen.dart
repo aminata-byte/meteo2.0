@@ -4,13 +4,23 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:meteo/screen/page_principale_screen.dart';
+
+// ═══════════════════════════════════════════════════════════════
 class WeatherData {
-  final String city;        // Nom de la ville (ex: "Dakar")
-  final String country;     // Code pays (ex: "SN")
-  final double temp;        // Température en °C
-  final String description; // Description en majuscules (ex: "ENSOLEILLÉ")
-  final String icon;        // Code icône OpenWeather (ex: "01d")
-  final double windSpeed;   // Vitesse du vent en m/s
+  final String city;
+  final String country;
+  final double temp;
+  final String description;
+  final String icon;
+  final double windSpeed;
+  final double lat;
+  final double lng;
+  final int humidity;
+  final int pressure;
+  final double feelsLike;
+  final double visibility;
+  final String sunrise;
+  final String sunset;
 
   WeatherData({
     required this.city,
@@ -19,24 +29,48 @@ class WeatherData {
     required this.description,
     required this.icon,
     required this.windSpeed,
+    required this.lat,
+    required this.lng,
+    required this.humidity,
+    required this.pressure,
+    required this.feelsLike,
+    required this.visibility,
+    required this.sunrise,
+    required this.sunset,
   });
 
-  /// Convertit un Map JSON brut en WeatherData
   factory WeatherData.fromMap(Map<String, dynamic> json) {
+    String _formatTime(int? timestamp) {
+      if (timestamp == null) return "00:00";
+      final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      return '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+    }
+
     return WeatherData(
-      city:        json['name'],
-      country:     json['sys']['country'],
-      temp:        (json['main']['temp'] as num).toDouble(),
-      description: json['weather'][0]['description'].toString().toUpperCase(),
-      icon:        json['weather'][0]['icon'],
-      windSpeed:   (json['wind']['speed'] as num).toDouble(),
+      city:        json['name'] ?? 'Inconnue',
+      country:     json['sys']?['country'] ?? '??',
+      temp:        (json['main']?['temp'] as num?)?.toDouble() ?? 0.0,
+      description: (json['weather'] != null && json['weather'].isNotEmpty)
+          ? json['weather'][0]['description'].toString().toUpperCase()
+          : 'N/A',
+      icon:        (json['weather'] != null && json['weather'].isNotEmpty)
+          ? json['weather'][0]['icon']
+          : '01d',
+      windSpeed:   (json['wind']?['speed'] as num?)?.toDouble() ?? 0.0,
+      lat:         (json['coord']?['lat'] as num?)?.toDouble() ?? 0.0,
+      lng:         (json['coord']?['lon'] as num?)?.toDouble() ?? 0.0,
+      humidity:    json['main']?['humidity'] ?? 0,
+      pressure:    json['main']?['pressure'] ?? 0,
+      feelsLike:   (json['main']?['feels_like'] as num?)?.toDouble() ?? 0.0,
+      visibility:  ((json['visibility'] as num?)?.toDouble() ?? 0.0) / 1000,
+      sunrise:     _formatTime(json['sys']?['sunrise']),
+      sunset:      _formatTime(json['sys']?['sunset']),
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ⏳ PAGE DE CHARGEMENT — StatefulWidget
-// ═══════════════════════════════════════════════════════════════
+// PAGE CHARGEMENT
 class PageChargementScreen extends StatefulWidget {
   const PageChargementScreen({super.key});
 
@@ -47,35 +81,17 @@ class PageChargementScreen extends StatefulWidget {
 class _PageChargementScreenState extends State<PageChargementScreen>
     with SingleTickerProviderStateMixin {
 
-  // 🔑 Clé API OpenWeatherMap
   final String apiKey = 'bede8a146a0a4ea689a842150385ab6f';
+  final List<String> villes = ['Dakar', 'Kaolack', 'Diourbel', 'Paris', 'New York'];
 
-  // 📍 Les 5 villes à charger
-  final List<String> villes = [
-    'Dakar',
-    'Kaolack',
-    'Diourbel',
-    'Paris',
-    'New York',
-  ];
-
-  // ── État de la jauge ──────────────────────
   double progression = 0.0;
-
-  // ── Données brutes récupérées depuis l'API ─
   List<Map<String, dynamic>> donneesMeteo = [];
-
-  // ── Flags d'état ──────────────────────────
   bool chargementTermine = false;
   bool erreur = false;
 
-  // ── Animation de la jauge ─────────────────
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  // ─────────────────────────────────────────
-  // 💬 Message dynamique basé sur la progression
-  // ─────────────────────────────────────────
   String get messageActuel {
     if (progression >= 1.0) return '';
     if (progression < 0.4)  return 'Nous téléchargeons les données... 📡';
@@ -83,9 +99,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     return 'Plus que quelques secondes avant d\'avoir le résultat... 🌤️';
   }
 
-  // ─────────────────────────────────────────
-  // 🏙 Ville en cours de chargement
-  // ─────────────────────────────────────────
   String get villeActuelle {
     if (chargementTermine) return 'Terminé';
     int index = (progression * villes.length).toInt().clamp(0, villes.length - 1);
@@ -105,51 +118,39 @@ class _PageChargementScreenState extends State<PageChargementScreen>
 
   @override
   void dispose() {
-    // 🧹 Libère le contrôleur pour éviter les memory leaks
     _animationController.dispose();
     super.dispose();
   }
 
-  // ═══════════════════════════════════════════
-  // 🚀 _demarrerChargement()
-  // Charge les 5 villes une par une → +20% par ville
-  // ═══════════════════════════════════════════
   Future<void> _demarrerChargement() async {
     donneesMeteo = [];
     setState(() {
-      progression       = 0.0;
+      progression = 0.0;
       chargementTermine = false;
-      erreur            = false;
+      erreur = false;
     });
 
     for (int i = 0; i < villes.length; i++) {
       try {
         final data = await _fetchMeteo(villes[i]);
         donneesMeteo.add(data);
-      } catch (e) {
-        // ❌ Erreur → arrête tout et affiche la vue erreur
+      } catch (_) {
         if (mounted) setState(() => erreur = true);
         return;
       }
-      // Anime la jauge jusqu'au prochain palier (20%, 40%...)
       await _animerProgression((i + 1) / villes.length);
     }
 
     await Future.delayed(const Duration(milliseconds: 400));
-
     if (mounted) {
       setState(() => chargementTermine = true);
       await Future.delayed(const Duration(milliseconds: 800));
-
       if (mounted) {
-        // ✅ Convertit les Maps JSON → WeatherData puis navigue
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => PagePrincipaleScreen(
-              weatherList: donneesMeteo
-                  .map((json) => WeatherData.fromMap(json))
-                  .toList(),
+              weatherList: donneesMeteo.map((json) => WeatherData.fromMap(json)).toList(),
             ),
           ),
         );
@@ -157,18 +158,12 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     }
   }
 
-  // ═══════════════════════════════════════════
-  // 🎞 _animerProgression(cible)
-  // ═══════════════════════════════════════════
   Future<void> _animerProgression(double cible) async {
     final completer = Completer<void>();
     _animation = Tween<double>(
       begin: progression,
       end: cible,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
     _animationController.forward(from: 0).then((_) => completer.complete());
     _animation.addListener(() {
       if (mounted) setState(() => progression = _animation.value);
@@ -176,16 +171,10 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     return completer.future;
   }
 
-  // ═══════════════════════════════════════════
-  // 🌐 _fetchMeteo(ville)
-  // Timeout 5 secondes
-  // ═══════════════════════════════════════════
   Future<Map<String, dynamic>> _fetchMeteo(String ville) async {
     final url = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather'
-          '?q=$ville&appid=$apiKey&units=metric&lang=fr',
+      'https://api.openweathermap.org/data/2.5/weather?q=$ville&appid=$apiKey&units=metric&lang=fr',
     );
-
     final response = await http.get(url).timeout(
       const Duration(seconds: 5),
       onTimeout: () => throw TimeoutException('Timeout pour $ville'),
@@ -198,133 +187,80 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     }
   }
 
-  // ═══════════════════════════════════════════
-  // 🎨 BUILD
-  // ═══════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor:
-      isDark ? const Color(0xFF0F1926) : const Color(0xFFEAF4FB),
+      backgroundColor: isDark ? const Color(0xFF0F1926) : const Color(0xFFEAF4FB),
       body: SafeArea(
         child: Center(
-          child: erreur
-              ? _buildErreur(isDark)
-              : _buildChargement(isDark),
+          child: erreur ? _buildErreur(isDark) : _buildChargement(isDark),
         ),
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 📊 VUE : JAUGE CIRCULAIRE ANIMÉE
-  // ═══════════════════════════════════════════
   Widget _buildChargement(bool isDark) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-
         SizedBox(
           width: 220,
           height: 220,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Jauge circulaire dégradée
               CustomPaint(
                 size: const Size(220, 220),
-                painter: JaugeDegradeePainter(
-                  progression: progression,
-                  isDark: isDark,
-                ),
+                painter: JaugeDegradeePainter(progression: progression, isDark: isDark),
               ),
-              // Pourcentage + ville actuelle au centre
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     '${(progression * 100).toInt()}%',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
+                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
                   ),
                   Text(
                     villeActuelle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
+                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white60 : Colors.black54),
                   ),
                 ],
               ),
             ],
           ),
         ),
-
         const SizedBox(height: 60),
-
-        // 💬 Message d'attente animé (disparaît à 100%)
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
-          transitionBuilder: (child, animation) =>
-              FadeTransition(opacity: animation, child: child),
           child: messageActuel.isEmpty
               ? const SizedBox(key: ValueKey('vide'), height: 20)
               : Text(
             messageActuel,
             key: ValueKey<String>(messageActuel),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark ? Colors.white70 : Colors.black54,
-              fontStyle: FontStyle.italic,
-            ),
+            style: TextStyle(fontSize: 16, color: isDark ? Colors.white70 : Colors.black54, fontStyle: FontStyle.italic),
           ),
         ),
       ],
     );
   }
 
-  // ═══════════════════════════════════════════
-  // ❌ VUE : ERREUR + BOUTON RÉESSAYER
-  // ═══════════════════════════════════════════
   Widget _buildErreur(bool isDark) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.error_outline, color: Colors.red, size: 80),
         const SizedBox(height: 20),
-        Text(
-          'Erreur de chargement ❌',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
+        Text('Erreur de chargement ❌', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 10),
-        Text(
-          'Vérifiez votre connexion internet',
-          style: TextStyle(
-              color: isDark ? Colors.white60 : Colors.black54),
-        ),
+        Text('Vérifiez votre connexion internet', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
         const SizedBox(height: 40),
-        // 🔄 Réessayer → relance _demarrerChargement()
         ElevatedButton.icon(
           onPressed: _demarrerChargement,
           icon: const Icon(Icons.refresh),
           label: const Text('Réessayer 🔄'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30)),
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         ),
       ],
     );
@@ -332,61 +268,53 @@ class _PageChargementScreenState extends State<PageChargementScreen>
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 🎨 CustomPainter : Jauge circulaire dégradée bleu → orange
-// ═══════════════════════════════════════════════════════════════
 class JaugeDegradeePainter extends CustomPainter {
   final double progression;
   final bool isDark;
-
   JaugeDegradeePainter({required this.progression, required this.isDark});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center      = Offset(size.width / 2, size.height / 2);
-    final radius      = size.width / 2 - 10;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 10;
     const strokeWidth = 10.0;
 
-    // Cercle de fond gris (piste)
     final paintFond = Paint()
-      ..color       = isDark ? Colors.white12 : Colors.grey.shade200
-      ..style       = PaintingStyle.stroke
+      ..color = isDark ? Colors.white12 : Colors.grey.shade200
+      ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap   = StrokeCap.round;
+      ..strokeCap = StrokeCap.round;
 
     canvas.drawCircle(center, radius, paintFond);
-
     if (progression <= 0) return;
 
-    // Arc avec dégradé bleu → orange → bleu
-    final rect     = Rect.fromCircle(center: center, radius: radius);
+    final rect = Rect.fromCircle(center: center, radius: radius);
     final gradient = SweepGradient(
       startAngle: -pi / 2,
-      endAngle:   -pi / 2 + 2 * pi,
-      colors: const [
-        Color(0xFF4A90E2),
-        Color(0xFFF2913D),
-        Color(0xFF4A90E2),
-      ],
+      endAngle: -pi / 2 + 2 * pi,
+      colors: const [Color(0xFF4A90E2), Color(0xFFF2913D), Color(0xFF4A90E2)],
       stops: const [0.0, 0.6, 1.0],
     );
 
     final paintArc = Paint()
-      ..shader      = gradient.createShader(rect)
-      ..style       = PaintingStyle.stroke
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap   = StrokeCap.round;
+      ..strokeCap = StrokeCap.round;
 
-    canvas.drawArc(
-      rect,
-      -pi / 2,
-      2 * pi * progression,
-      false,
-      paintArc,
-    );
+    canvas.drawArc(rect, -pi / 2, 2 * pi * progression, false, paintArc);
   }
 
   @override
   bool shouldRepaint(JaugeDegradeePainter oldDelegate) =>
-      oldDelegate.progression != progression ||
-          oldDelegate.isDark != isDark;
+      oldDelegate.progression != progression || oldDelegate.isDark != isDark;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LANCE L'APP
+void main() {
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: PageChargementScreen(),
+  ));
 }
