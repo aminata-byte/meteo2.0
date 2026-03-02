@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════
+// 📄 page_principale_screen.dart
+// ═══════════════════════════════════════════════════════════════
+
 import 'package:flutter/material.dart';
 import 'page_chargement_screen.dart';
 import 'page_details_screen.dart';
@@ -7,21 +11,23 @@ class PagePrincipaleScreen extends StatelessWidget {
   final List<WeatherData> weatherList;
   const PagePrincipaleScreen({super.key, required this.weatherList});
 
+  // ─────────────────────────────────────────
+  // 🌤 Retourne l'emoji météo selon le code OpenWeather
+  // ─────────────────────────────────────────
   String _weatherEmoji(String iconCode) {
-
-    final code = iconCode.substring(0, 2);
+    final code    = iconCode.substring(0, 2);
     final isNight = iconCode.endsWith('n');
 
     switch (code) {
-      case '01': return isNight ? '🌕' : '☀️';
-      case '02': return isNight ? '🌤' : '🌤️';
-      case '03': return '🌥️';
-      case '04': return '☁️';
-      case '09': return '🌧️';
-      case '10': return isNight ? '🌧️' : '⛈️';
-      case '11': return '⛈️';
-      case '13': return '❄️';
-      case '50': return '🌫️';
+      case '01': return isNight ? '🌕'  : '☀️';   // Ciel dégagé
+      case '02': return isNight ? '🌤'  : '🌤️';  // Peu nuageux
+      case '03': return '🌥️';                     // Nuages épars
+      case '04': return '☁️';                     // Très nuageux
+      case '09': return '🌧️';                    // Averses
+      case '10': return isNight ? '🌧️' : '⛈️';  // Pluie
+      case '11': return '⛈️';                    // Orage
+      case '13': return '❄️';                    // Neige
+      case '50': return '🌫️';                   // Brume
       default:   return '🌡️';
     }
   }
@@ -58,16 +64,22 @@ class PagePrincipaleScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           TextButton.icon(
+            // ✅ CORRIGÉ : navigue vers PageChargementScreen (pas PageDetailsScreen)
             onPressed: () => Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const PageChargementScreen()),
+              MaterialPageRoute(
+                builder: (_) => const PageChargementScreen(),
+              ),
             ),
             icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
-            label: const Text('Actualiser',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13)),
+            label: const Text(
+              'Actualiser',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
@@ -88,11 +100,15 @@ class PagePrincipaleScreen extends StatelessWidget {
     );
   }
 
-
-  //  CARTE D'UNE VILLE
+  // ═══════════════════════════════════════════
+  // 🃏 CARTE D'UNE VILLE
+  // Gauche blanc : emoji + nom + description
+  // Droite gris léger : température + vent
+  // ═══════════════════════════════════════════
   Widget _buildCityCard(
       BuildContext context, WeatherData w, bool isDark) {
     return GestureDetector(
+      // 👆 Tap → page détail de la ville
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => PageDetailsScreen(data: w)),
@@ -102,7 +118,7 @@ class PagePrincipaleScreen extends StatelessWidget {
         child: Row(
           children: [
 
-            //  GAUCHE fond blanc
+            // ── GAUCHE : fond blanc ─────────────
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -111,7 +127,7 @@ class PagePrincipaleScreen extends StatelessWidget {
                 child: Row(
                   children: [
 
-                    //Emoji météo doré/coloré selon le code OpenWeather
+                    // ✅ Emoji météo doré/coloré
                     Text(
                       _weatherEmoji(w.icon),
                       style: const TextStyle(fontSize: 52),
@@ -148,7 +164,7 @@ class PagePrincipaleScreen extends StatelessWidget {
               ),
             ),
 
-            //DROITE  gris très léger
+            // ── DROITE : gris très léger ────────
             Container(
               width: 100,
               color: isDark
@@ -157,6 +173,7 @@ class PagePrincipaleScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Température
                   Text(
                     '${w.temp.round()}°C',
                     style: TextStyle(
@@ -166,6 +183,7 @@ class PagePrincipaleScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // Vent
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

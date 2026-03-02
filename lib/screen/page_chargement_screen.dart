@@ -1,21 +1,9 @@
-// ═══════════════════════════════════════════════════════════════
-// 📄 page_chargement_screen.dart
-// Page de chargement : jauge animée + appels API pour 5 villes
-// Villes : Dakar, Kaolack, Diourbel, Paris, New York
-// ═══════════════════════════════════════════════════════════════
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:meteo/screen/page_principale_screen.dart';
-
-// ───────────────────────────────────────────────────────────────
-// 📦 MODÈLE : WeatherData
-// Représente les données météo d'une ville
-// Utilisé par PagePrincipaleScreen et PageDetailsScreen
-// ───────────────────────────────────────────────────────────────
 class WeatherData {
   final String city;        // Nom de la ville (ex: "Dakar")
   final String country;     // Code pays (ex: "SN")
@@ -33,7 +21,7 @@ class WeatherData {
     required this.windSpeed,
   });
 
-  /// Convertit un Map JSON brut (donneesMeteo) en WeatherData
+  /// Convertit un Map JSON brut en WeatherData
   factory WeatherData.fromMap(Map<String, dynamic> json) {
     return WeatherData(
       city:        json['name'],
@@ -63,7 +51,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
   final String apiKey = 'bede8a146a0a4ea689a842150385ab6f';
 
   // 📍 Les 5 villes à charger
-  // ✅ Dakar, Kaolack, Diourbel (Sénégal) + Paris + New York
   final List<String> villes = [
     'Dakar',
     'Kaolack',
@@ -88,7 +75,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
 
   // ─────────────────────────────────────────
   // 💬 Message dynamique basé sur la progression
-  // Disparaît quand la jauge est à 100%
   // ─────────────────────────────────────────
   String get messageActuel {
     if (progression >= 1.0) return '';
@@ -106,7 +92,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     return villes[index];
   }
 
-  // ─────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -128,7 +113,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
   // ═══════════════════════════════════════════
   // 🚀 _demarrerChargement()
   // Charge les 5 villes une par une → +20% par ville
-  // Appelé au démarrage ET au clic "Réessayer"
   // ═══════════════════════════════════════════
   Future<void> _demarrerChargement() async {
     donneesMeteo = [];
@@ -138,7 +122,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
       erreur            = false;
     });
 
-    // Charge chaque ville séquentiellement
     for (int i = 0; i < villes.length; i++) {
       try {
         final data = await _fetchMeteo(villes[i]);
@@ -159,8 +142,7 @@ class _PageChargementScreenState extends State<PageChargementScreen>
       await Future.delayed(const Duration(milliseconds: 800));
 
       if (mounted) {
-        // ✅ Convertit les Maps JSON → WeatherData
-        // puis navigue vers PagePrincipaleScreen
+        // ✅ Convertit les Maps JSON → WeatherData puis navigue
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -177,7 +159,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
 
   // ═══════════════════════════════════════════
   // 🎞 _animerProgression(cible)
-  // Anime la jauge de sa valeur actuelle → cible
   // ═══════════════════════════════════════════
   Future<void> _animerProgression(double cible) async {
     final completer = Completer<void>();
@@ -197,8 +178,7 @@ class _PageChargementScreenState extends State<PageChargementScreen>
 
   // ═══════════════════════════════════════════
   // 🌐 _fetchMeteo(ville)
-  // Appel HTTP vers OpenWeatherMap
-  // Timeout 5 secondes pour éviter les blocages
+  // Timeout 5 secondes
   // ═══════════════════════════════════════════
   Future<Map<String, dynamic>> _fetchMeteo(String ville) async {
     final url = Uri.parse(
@@ -212,7 +192,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
     );
 
     if (response.statusCode == 200) {
-      // ✅ Retourne le JSON brut
       return jsonDecode(response.body);
     } else {
       throw Exception('Erreur API pour $ville — Code ${response.statusCode}');
@@ -247,13 +226,13 @@ class _PageChargementScreenState extends State<PageChargementScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
 
-        // Jauge circulaire dégradée
         SizedBox(
           width: 220,
           height: 220,
           child: Stack(
             alignment: Alignment.center,
             children: [
+              // Jauge circulaire dégradée
               CustomPaint(
                 size: const Size(220, 220),
                 painter: JaugeDegradeePainter(
@@ -334,6 +313,7 @@ class _PageChargementScreenState extends State<PageChargementScreen>
               color: isDark ? Colors.white60 : Colors.black54),
         ),
         const SizedBox(height: 40),
+        // 🔄 Réessayer → relance _demarrerChargement()
         ElevatedButton.icon(
           onPressed: _demarrerChargement,
           icon: const Icon(Icons.refresh),
@@ -341,8 +321,7 @@ class _PageChargementScreenState extends State<PageChargementScreen>
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
-            padding:
-            const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30)),
           ),
