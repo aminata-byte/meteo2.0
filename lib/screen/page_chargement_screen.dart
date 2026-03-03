@@ -40,7 +40,7 @@ class WeatherData {
   });
 
   factory WeatherData.fromMap(Map<String, dynamic> json) {
-    String _formatTime(int? timestamp) {
+    String formatTime(int? timestamp) {
       if (timestamp == null) return "00:00";
       final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
       return '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
@@ -63,8 +63,8 @@ class WeatherData {
       pressure:    json['main']?['pressure'] ?? 0,
       feelsLike:   (json['main']?['feels_like'] as num?)?.toDouble() ?? 0.0,
       visibility:  ((json['visibility'] as num?)?.toDouble() ?? 0.0) / 1000,
-      sunrise:     _formatTime(json['sys']?['sunrise']),
-      sunset:      _formatTime(json['sys']?['sunset']),
+      sunrise:     formatTime(json['sys']?['sunrise']),
+      sunset:      formatTime(json['sys']?['sunset']),
     );
   }
 }
