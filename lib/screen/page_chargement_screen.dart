@@ -279,6 +279,7 @@ class JaugeDegradeePainter extends CustomPainter {
     final radius = size.width / 2 - 10;
     const strokeWidth = 10.0;
 
+
     final paintFond = Paint()
       ..color = isDark ? Colors.white12 : Colors.grey.shade200
       ..style = PaintingStyle.stroke
