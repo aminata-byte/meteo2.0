@@ -122,7 +122,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
 
-                          // Bouton retour
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: Container(
@@ -141,7 +140,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
 
                           const SizedBox(height: 50),
 
-                          // Nom de la ville
                           Text(
                             widget.data.city,
                             style: TextStyle(
@@ -153,7 +151,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
 
                           const SizedBox(height: 2),
 
-                          // Date en français
                           Text(
                             DateFormat('EEEE, d MMMM', 'fr_FR').format(DateTime.now()),
                             style: TextStyle(
@@ -166,7 +163,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
 
                       const Spacer(),
 
-                      // Code pays à droite
                       Text(
                         widget.data.country,
                         style: TextStyle(
@@ -201,7 +197,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                       clipBehavior: Clip.none,
                       children: [
 
-                        // Icône météo qui déborde en haut à gauche
                         Positioned(
                           top: -85,
                           left: 20,
@@ -212,7 +207,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                           ),
                         ),
 
-                        // Température en haut à droite
                         Positioned(
                           right: 20,
                           top: 20,
@@ -226,7 +220,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                           ),
                         ),
 
-                        // Description en bas à gauche
                         Positioned(
                           left: 25,
                           bottom: 25,
@@ -252,7 +245,7 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
 
-                      // Vent
+
                       _buildStatColumn(
                         isDark: isDark,
                         label: 'Vitesse vent',
@@ -260,7 +253,7 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                         value: '${widget.data.windSpeed.toStringAsFixed(1)} m/s',
                       ),
 
-                      // Humidité
+
                       _buildStatColumn(
                         isDark: isDark,
                         label: 'Humidité',
@@ -268,7 +261,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                         value: '${widget.data.humidity}%',
                       ),
 
-                      // Temp max
                       _buildStatColumn(
                         isDark: isDark,
                         label: 'Temp Max',
@@ -343,7 +335,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Jour
                             Text(
                               isFirst ? "Auj." : f['day'],
                               style: TextStyle(
@@ -352,14 +343,12 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            // Icône météo
                             Image.asset(
                               _weatherImage(f['icon']),
                               width: 40,
                               height: 40,
                             ),
                             const SizedBox(height: 8),
-                            // Température
                             Text(
                               '${(f['temp'] as double).round()}°C',
                               style: TextStyle(
@@ -397,12 +386,11 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
-                        // Titre carte
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                           child: Row(
                             children: [
-                              const Text('📍', style: TextStyle(fontSize: 18)),
+
                               const SizedBox(width: 8),
                               Text(
                                 'Localisation sur la carte',
@@ -416,7 +404,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                           ),
                         ),
 
-                        // Carte OpenStreetMap
                         ClipRRect(
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(25),
@@ -455,7 +442,6 @@ class _PageDetailsScreenState extends State<PageDetailsScreen> {
                           ),
                         ),
 
-                        // Coordonnées GPS
                         Padding(
                           padding: const EdgeInsets.all(10),
                           child: Center(

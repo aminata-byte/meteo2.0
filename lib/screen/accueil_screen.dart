@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meteo/screen/page_chargement_screen.dart';
 
-// ✅ Import de la page principale
 
 
 class AccueilScreen extends StatelessWidget {
@@ -16,7 +15,6 @@ class AccueilScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Image de fond
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -30,7 +28,6 @@ class AccueilScreen extends StatelessWidget {
             ),
           ),
 
-          // Icône en haut à droite (safe)
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -44,7 +41,6 @@ class AccueilScreen extends StatelessWidget {
             ),
           ),
 
-          // Contenu centré
           Padding(
             padding: const EdgeInsets.only(top: 200),
             child: Center(
@@ -57,56 +53,51 @@ class AccueilScreen extends StatelessWidget {
                     "Météo Live",
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
                       fontSize: 40,
-                      color: Colors.black,
+                      color: isDark ? Colors.white : Colors.black,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Sous-titre
 
                   const SizedBox(height: 24),
 
-                  // Température
-                  const Text(
+                   Text(
                     "22°C",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 72,
                       fontWeight: FontWeight.w300,
-                      color: Colors.black,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
 
-                  // Bon matin
-                  const Text(
-                    "BONJOUR",
+                   Text(
+                    isDark ? "Bienvenue" : "Bienvenue",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
                       letterSpacing: 3,
-                      color: Colors.black54,
+                      color: isDark ? Colors.white : Colors.black,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 30),
 
-                  // Ligne d'infos : Lever | Vent | Temp
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
 
-                        // Lever
                         Column(
-                          children: const [
+                          children:  [
                             Text(
                               "LEVER",
                               style: TextStyle(
                                 fontSize: 12,
                                 letterSpacing: 1.5,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white : Colors.black54,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -116,29 +107,27 @@ class AccueilScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                           ],
                         ),
 
-                        // Séparateur
                         Container(
                           height: 40,
                           width: 1,
                           margin: const EdgeInsets.symmetric(horizontal: 20),
-                          color: Colors.black26,
+                          color: isDark ? Colors.white : Colors.black26,
                         ),
 
-                        // Vent
                         Column(
-                          children: const [
+                          children:  [
                             Text(
                               "VENT",
                               style: TextStyle(
                                 fontSize: 12,
                                 letterSpacing: 1.5,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white : Colors.black54,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -148,29 +137,27 @@ class AccueilScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                           ],
                         ),
 
-                        // Séparateur
                         Container(
                           height: 40,
                           width: 1,
                           margin: const EdgeInsets.symmetric(horizontal: 20),
-                          color: Colors.black26,
+                          color: isDark ? Colors.white : Colors.black26,
                         ),
 
-                        // Temp
                         Column(
-                          children: const [
+                          children:  [
                             Text(
                               "TEMP",
                               style: TextStyle(
                                 fontSize: 12,
                                 letterSpacing: 1.5,
-                                color: Colors.black54,
+                                color: isDark ? Colors.white : Colors.black54,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -180,7 +167,7 @@ class AccueilScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
                           ],
@@ -191,7 +178,6 @@ class AccueilScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 60),
 
-                  // Bouton Commencer
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.symmetric(horizontal: 30),

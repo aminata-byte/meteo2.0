@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// 📄 page_principale_screen.dart
-// ═══════════════════════════════════════════════════════════════
-
 import 'package:flutter/material.dart';
 import 'page_chargement_screen.dart';
 import 'page_details_screen.dart';
@@ -11,24 +7,24 @@ class PagePrincipaleScreen extends StatelessWidget {
   final List<WeatherData> weatherList;
   const PagePrincipaleScreen({super.key, required this.weatherList});
 
-  // ─────────────────────────────────────────
-  // 🌤 Retourne l'emoji météo selon le code OpenWeather
-  // ─────────────────────────────────────────
-  String _weatherEmoji(String iconCode) {
+
+  String _weatherImage(String iconCode) {
     final code    = iconCode.substring(0, 2);
     final isNight = iconCode.endsWith('n');
 
     switch (code) {
-      case '01': return isNight ? '🌕'  : '☀️';   // Ciel dégagé
-      case '02': return isNight ? '🌤'  : '🌤️';  // Peu nuageux
-      case '03': return '🌥️';                     // Nuages épars
-      case '04': return '☁️';                     // Très nuageux
-      case '09': return '🌧️';                    // Averses
-      case '10': return isNight ? '🌧️' : '⛈️';  // Pluie
-      case '11': return '⛈️';                    // Orage
-      case '13': return '❄️';                    // Neige
-      case '50': return '🌫️';                   // Brume
-      default:   return '🌡️';
+      case '01': return isNight
+          ? 'assets/icons/moon.png'
+          : 'assets/icons/sun.png';
+      case '02': return 'assets/icons/lightcloud.png';
+      case '03': return 'assets/icons/lightcloud.png';
+      case '04': return 'assets/icons/heavycloud.png';
+      case '09': return 'assets/icons/showers.png';
+      case '10': return 'assets/icons/lightrain.png';
+      case '11': return 'assets/icons/thunderstorm.png';
+      case '13': return 'assets/icons/snow.png';
+      case '50': return 'assets/icons/heavycloud.png';
+      default:   return 'assets/icons/sun.png';
     }
   }
 
@@ -44,7 +40,7 @@ class PagePrincipaleScreen extends StatelessWidget {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF0597F2), Color(0xFF05AFF2)],
+              colors: [Color(0xFF0597F2), Color(0xFF2A2A4A)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
@@ -64,7 +60,6 @@ class PagePrincipaleScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           TextButton.icon(
-            // ✅ CORRIGÉ : navigue vers PageChargementScreen (pas PageDetailsScreen)
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -100,15 +95,9 @@ class PagePrincipaleScreen extends StatelessWidget {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // 🃏 CARTE D'UNE VILLE
-  // Gauche blanc : emoji + nom + description
-  // Droite gris léger : température + vent
-  // ═══════════════════════════════════════════
   Widget _buildCityCard(
       BuildContext context, WeatherData w, bool isDark) {
     return GestureDetector(
-      // 👆 Tap → page détail de la ville
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => PageDetailsScreen(data: w)),
@@ -118,23 +107,21 @@ class PagePrincipaleScreen extends StatelessWidget {
         child: Row(
           children: [
 
-            // ── GAUCHE : fond blanc ─────────────
             Expanded(
               child: Container(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF2A2A4A) : Colors.white,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8),
                 child: Row(
                   children: [
 
-                    // ✅ Emoji météo doré/coloré
-                    Text(
-                      _weatherEmoji(w.icon),
-                      style: const TextStyle(fontSize: 52),
+                    Image.asset(
+                      _weatherImage(w.icon),
+                      width: 52,
+                      height: 52,
                     ),
                     const SizedBox(width: 12),
 
-                    // Nom + pays · description
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -151,10 +138,10 @@ class PagePrincipaleScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '${w.country} · ${w.description}',
-                            style: const TextStyle(
+                            style:  TextStyle(
                                 fontSize: 10,
                                 letterSpacing: 0.4,
-                                color: Colors.black45),
+                                color: isDark ? Colors.white : Colors.black54),
                           ),
                         ],
                       ),
@@ -164,7 +151,6 @@ class PagePrincipaleScreen extends StatelessWidget {
               ),
             ),
 
-            // ── DROITE : gris très léger ────────
             Container(
               width: 100,
               color: isDark
@@ -173,7 +159,6 @@ class PagePrincipaleScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Température
                   Text(
                     '${w.temp.round()}°C',
                     style: TextStyle(
@@ -183,7 +168,6 @@ class PagePrincipaleScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Vent
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

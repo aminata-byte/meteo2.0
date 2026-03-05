@@ -4,8 +4,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:meteo/screen/page_principale_screen.dart';
-
-// ═══════════════════════════════════════════════════════════════
 class WeatherData {
   final String city;
   final String country;
@@ -69,8 +67,6 @@ class WeatherData {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PAGE CHARGEMENT
 class PageChargementScreen extends StatefulWidget {
   const PageChargementScreen({super.key});
 
@@ -267,7 +263,6 @@ class _PageChargementScreenState extends State<PageChargementScreen>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
 class JaugeDegradeePainter extends CustomPainter {
   final double progression;
   final bool isDark;
@@ -311,8 +306,7 @@ class JaugeDegradeePainter extends CustomPainter {
       oldDelegate.progression != progression || oldDelegate.isDark != isDark;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LANCE L'APP
+
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
