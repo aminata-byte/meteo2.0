@@ -248,14 +248,14 @@ class _PageChargementScreenState extends State<PageChargementScreen>
       children: [
         const Icon(Icons.error_outline, color: Colors.red, size: 80),
         const SizedBox(height: 20),
-        Text('Erreur de chargement ❌', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+        Text('Erreur de chargement', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
         const SizedBox(height: 10),
         Text('Vérifiez votre connexion internet', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
         const SizedBox(height: 40),
         ElevatedButton.icon(
           onPressed: _demarrerChargement,
           icon: const Icon(Icons.refresh),
-          label: const Text('Réessayer 🔄'),
+          label: const Text('Réessayer'),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
         ),
       ],
